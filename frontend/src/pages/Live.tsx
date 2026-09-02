@@ -48,7 +48,9 @@ export default function Live() {
     const proto = window.location.protocol === 'https:' ? 'wss' : 'ws';
 
     function connect() {
-      const ws = new WebSocket(`${proto}://${window.location.host}/api/live`);
+      const defaultWs = `${proto}://${window.location.host}/api/live`;
+      const targetWs = import.meta.env.VITE_WS_URL || defaultWs;
+      const ws = new WebSocket(targetWs);
       wsRef.current = ws;
       ws.onopen = () => {
         if (alive) setConnected(true);

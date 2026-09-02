@@ -22,7 +22,7 @@ app = FastAPI(title="SkyGuard AI — Intelligent AWS Anomaly Detection")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=CORS_ORIGINS,
+    allow_origins=["*"] if "*" in CORS_ORIGINS or not CORS_ORIGINS else CORS_ORIGINS,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
