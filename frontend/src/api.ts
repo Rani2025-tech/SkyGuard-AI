@@ -1,0 +1,172 @@
+// API client for the SkyGuard backend.
+import type {
+  Station,
+  StationPrediction,
+  ProductionAnalytics,
+  ModelMetadata,
+  Anomaly,
+  SensorHealth,
+  Explanation,
+  ModelInfo,
+  ModelEvaluation,
+  SimulationResult,
+  DeepDiveStation,
+  DeepDiveTelemetryResponse,
+  FlaggedLogResponse,
+  DeepDiveExplainResponse,
+} from './types';
+
+const BASE = '/api';
+
+async function get<T>(path: string): Promise<T> {
+  const res = await fetch(`${BASE}${path}`);
+  if (!res.ok) throw new Error(`API ${res.status}: ${res.statusText}`);
+  return (await res.json()) as T;
+}
+
+async function post<T>(path: string, body: unknown): Promise<T> {
+  const res = await fetch(`${BASE}${path}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+  if (!res.ok) throw new Error(`API ${res.status}: ${res.statusText}`);
+  return (await res.json()) as T;
+}
+
+export const api = {
+  stations: () => get<Station[]>('/stations'),
+  station: (id: string) => get<Station>(`/stations/${id}`),
+  predictions: () => get<StationPrediction[]>('/stations/predictions'),
+  predict: (id: string) => get<StationPrediction>(`/stations/${id}/predict`),
+  anomalies: (params?: { station_id?: string; severity?: string; anomaly_type?: string }) => {
+    const q = new URLSearchParams();
+    if (params?.station_id) q.set('station_id', params.station_id);
+    if (params?.severity) q.set('severity', params.severity);
+    if (params?.anomaly_type) q.set('anomaly_type', params.anomaly_type);
+    const qs = q.toString();
+    return get<Anomaly[]>(`/anomalies${qs ? `?${qs}` : ''}`);
+  },
+  anomaly: (id: number) => get<Anomaly>(`/anomalies/${id}`),
+  explanation: (id: number) => get<Explanation>(`/explanations/${id}`),
+  sensorHealth: (id: string) => get<SensorHealth>(`/sensor-health/${id}`),
+  analytics: (params?: { source?: 'LIVE' | 'HISTORICAL' }) => {
+    const q = new URLSearchParams();
+    if (params?.source) q.set('source', params.source);
+    const qs = q.toString();
+    return get<ProductionAnalytics>(`/analytics${qs ? `?${qs}` : ''}`);
+  },
+  modelInfo: () => get<ModelInfo>('/model/info'),
+  modelMetadata: () => get<ModelMetadata>('/model/metadata'),
+  modelEvaluation: () => get<ModelEvaluation>('/model/evaluation'),
+  simulate: (payload: {
+    station_id: string;
+    variable: string;
+    anomaly_type: string;
+    magnitude?: number;
+    duration?: number;
+  }) => post<SimulationResult>('/simulation/inject', payload),
+  health: () => get<{ status: string; system: string; model_trained: boolean }>('/health'),
+
+  // Deep-Dive XAI & PyOD telemetry API methods
+  deepDiveStations: () => get<DeepDiveStation[]>('/deep-dive/stations'),
+  deepDiveTelemetry: (params: {
+    station_id?: string;
+    days?: number;
+    contamination?: number;
+    seed?: number;
+    start_date?: string;
+    end_date?: string;
+  }) => {
+    const q = new URLSearchParams();
+    if (params.station_id) q.set('station_id', params.station_id);
+    if (params.days != null) q.set('days', String(params.days));
+    if (params.contamination != null) q.set('contamination', String(params.contamination));
+    if (params.seed != null) q.set('seed', String(params.seed));
+    if (params.start_date) q.set('start_date', params.start_date);
+    if (params.end_date) q.set('end_date', params.end_date);
+    const qs = q.toString();
+    return get<DeepDiveTelemetryResponse>(`/deep-dive/telemetry${qs ? `?${qs}` : ''}`);
+  },
+  deepDivePlotlyChart: (params: {
+    station_id?: string;
+    days?: number;
+    contamination?: number;
+    seed?: number;
+    start_date?: string;
+    end_date?: string;
+  }) => {
+    const q = new URLSearchParams();
+    if (params.station_id) q.set('station_id', params.station_id);
+    if (params.days != null) q.set('days', String(params.days));
+    if (params.contamination != null) q.set('contamination', String(params.contamination));
+    if (params.seed != null) q.set('seed', String(params.seed));
+    if (params.start_date) q.set('start_date', params.start_date);
+    if (params.end_date) q.set('end_date', params.end_date);
+    const qs = q.toString();
+    return get<{ data: any[]; layout: any; min_date?: string; max_date?: string; start_date?: string; end_date?: string }>(`/deep-dive/plotly-chart${qs ? `?${qs}` : ''}`);
+  },
+  deepDiveFlaggedLog: (params: {
+    station_id?: string;
+    days?: number;
+    contamination?: number;
+    seed?: number;
+    anomaly_types?: string;
+    min_confidence?: number;
+    only_anomalies?: boolean;
+  }) => {
+    const q = new URLSearchParams();
+    if (params.station_id) q.set('station_id', params.station_id);
+    if (params.days != null) q.set('days', String(params.days));
+    if (params.contamination != null) q.set('contamination', String(params.contamination));
+    if (params.seed != null) q.set('seed', String(params.seed));
+    if (params.anomaly_types) q.set('anomaly_types', params.anomaly_types);
+    if (params.min_confidence != null) q.set('min_confidence', String(params.min_confidence));
+    if (params.only_anomalies != null) q.set('only_anomalies', String(params.only_anomalies));
+    const qs = q.toString();
+    return get<FlaggedLogResponse>(`/deep-dive/flagged-log${qs ? `?${qs}` : ''}`);
+  },
+  deepDiveExplain: (params: {
+    station_id?: string;
+    days?: number;
+    contamination?: number;
+    seed?: number;
+    index?: number;
+  }) => {
+    const q = new URLSearchParams();
+    if (params.station_id) q.set('station_id', params.station_id);
+    if (params.days != null) q.set('days', String(params.days));
+    if (params.contamination != null) q.set('contamination', String(params.contamination));
+    if (params.seed != null) q.set('seed', String(params.seed));
+    if (params.index != null) q.set('index', String(params.index));
+    const qs = q.toString();
+    return get<DeepDiveExplainResponse>(`/deep-dive/explain${qs ? `?${qs}` : ''}`);
+  },
+  deepDiveReSimulate: (payload: {
+    station_id: string;
+    days: number;
+    contamination: number;
+    seed: number;
+  }) => post<{ status: string; station_id: string; total_readings: number; detected_anomalies: number }>('/deep-dive/re-simulate', payload),
+  deepDiveCsvUrl: (params: {
+    station_id?: string;
+    days?: number;
+    contamination?: number;
+    seed?: number;
+    anomaly_types?: string;
+    min_confidence?: number;
+    only_anomalies?: boolean;
+  }) => {
+    const q = new URLSearchParams();
+    if (params.station_id) q.set('station_id', params.station_id);
+    if (params.days != null) q.set('days', String(params.days));
+    if (params.contamination != null) q.set('contamination', String(params.contamination));
+    if (params.seed != null) q.set('seed', String(params.seed));
+    if (params.anomaly_types) q.set('anomaly_types', params.anomaly_types);
+    if (params.min_confidence != null) q.set('min_confidence', String(params.min_confidence));
+    if (params.only_anomalies != null) q.set('only_anomalies', String(params.only_anomalies));
+    q.set('export_csv', 'true');
+    return `${BASE}/deep-dive/flagged-log?${q.toString()}`;
+  },
+};
+
