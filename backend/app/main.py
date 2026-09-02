@@ -1,8 +1,12 @@
-"""SkyGuard AI — FastAPI application entrypoint.
+import sys
+from pathlib import Path
 
-Registers REST routes and the real-time WebSocket endpoint, and initialises
-the ML pipeline with the bundled sample dataset on startup.
-"""
+# Ensure the 'backend' folder is in sys.path so unpickling 'app.*' modules succeeds
+# regardless of current working directory when uvicorn is launched.
+_backend_dir = Path(__file__).resolve().parent.parent
+_backend_dir_str = str(_backend_dir)
+if _backend_dir_str not in sys.path:
+    sys.path.insert(0, _backend_dir_str)
 
 import asyncio
 

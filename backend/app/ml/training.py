@@ -1,4 +1,4 @@
-﻿"""Explicit, reproducible production training workflow.
+"""Explicit, reproducible production training workflow.
 
 Loads the 24-station HISTORICAL dataset (v2 = station-distinct synthetic),
 splits it CHRONOLOGICALLY into TRAIN / VALIDATION / TEST (70 / 15 / 15 by
@@ -16,6 +16,7 @@ No random, fabricated, or hardcoded predictions are produced by this module.
 import hashlib
 import json
 import pickle
+import sys
 from datetime import datetime
 from pathlib import Path
 
@@ -204,6 +205,13 @@ def load_versioned(subdir):
     meta_path = art / "metadata.json"
     if not model_path.exists():
         return None, None
+
+    # Ensure backend directory is in sys.path for pickle unpickling
+    backend_dir = Path(__file__).resolve().parent.parent.parent
+    backend_dir_str = str(backend_dir)
+    if backend_dir_str not in sys.path:
+        sys.path.insert(0, backend_dir_str)
+
     with open(model_path, "rb") as f:
         blob = pickle.load(f)
     model = ModelManager(station_id="MULTI_STATION_TRAIN")
