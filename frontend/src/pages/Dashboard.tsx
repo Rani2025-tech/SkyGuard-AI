@@ -8,7 +8,6 @@ import {
   Card,
   Badge,
   Spinner,
-  ErrorState,
   StatusDot,
   Button,
   fmt,
@@ -20,19 +19,49 @@ export default function Dashboard() {
   const [anomalies, setAnomalies] = useState<Anomaly[] | null>(null);
   const [health, setHealth] = useState<{ status: string; system: string; model_trained: boolean } | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [takingLonger, setTakingLonger] = useState(false);
 
   useEffect(() => {
+    const timer = setTimeout(() => setTakingLonger(true), 4000);
     Promise.all([api.stations(), api.anomalies(), api.health()])
       .then(([s, a, h]) => {
         setStations(s);
         setAnomalies(a);
         setHealth(h);
       })
-      .catch((e) => setError(e.message));
+      .catch((e) => setError(e.message))
+      .finally(() => clearTimeout(timer));
+    return () => clearTimeout(timer);
   }, []);
 
-  if (error) return <ErrorState message={error} />;
-  if (!stations || !anomalies) return <Spinner label="Loading dashboard\u2026" />;
+  if (error) return (
+    <div className="space-y-4 max-w-xl mx-auto mt-12 p-6 rounded-2xl bg-panel2 border border-red-500/30 text-center">
+      <div className="text-red-400 font-bold text-lg">⚠️ Backend Connection Error</div>
+      <div className="text-slate-300 text-sm">{error}</div>
+      <div className="text-slate-400 text-xs text-left bg-panel3 p-4 rounded-xl space-y-2 font-mono">
+        <div>Target API URL: <span className="text-sky-400 font-bold">{import.meta.env.VITE_API_URL || '/api (default)'}</span></div>
+        <div className="text-slate-500">Tip: If your backend is sleeping or spinning up on Render free tier, please wait 30 seconds and refresh.</div>
+      </div>
+      <button 
+        onClick={() => window.location.reload()} 
+        className="px-4 py-2 text-xs font-semibold rounded-xl bg-sky-500 hover:bg-sky-400 text-slate-950 transition-colors"
+      >
+        Retry Connection
+      </button>
+    </div>
+  );
+
+  if (!stations || !anomalies) return (
+    <div className="flex flex-col items-center justify-center py-20 space-y-4">
+      <Spinner label="Loading dashboard…" />
+      {takingLonger && (
+        <div className="max-w-md text-center p-4 rounded-xl bg-panel2/80 border border-amber-500/30 text-xs text-amber-200/90 space-y-1.5 animate-pulse">
+          <div className="font-semibold text-amber-300">⏳ Waking up backend service...</div>
+          <div>Render free tier web services spin down during inactivity. Initial cold-start takes 45–60 seconds.</div>
+        </div>
+      )}
+    </div>
+  );
 
   const high = anomalies.filter((a) => a.severity === 'HIGH').length;
   const medium = anomalies.filter((a) => a.severity === 'MEDIUM').length;
