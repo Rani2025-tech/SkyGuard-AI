@@ -2,6 +2,9 @@ import { useEffect, useState, useCallback, useRef } from 'react';
 import { api } from '../api';
 import type { ProductionAnalytics } from '../types';
 
+// Persists across page navigations so re-mounting shows cached data instantly
+const globalCache: { data: ProductionAnalytics | null } = { data: null };
+
 export interface UseAnalyticsOptions {
   initialSource?: 'LIVE' | 'HISTORICAL';
   pollingIntervalMs?: number;
@@ -26,8 +29,8 @@ export function useAnalytics(options: UseAnalyticsOptions = {}): UseAnalyticsRet
   } = options;
 
   const [dataSource, setDataSourceState] = useState<'LIVE' | 'HISTORICAL'>(initialSource);
-  const [data, setData] = useState<ProductionAnalytics | null>(null);
-  const [loading, setLoading] = useState<boolean>(true);
+  const [data, setData] = useState<ProductionAnalytics | null>(globalCache.data);
+  const [loading, setLoading] = useState<boolean>(globalCache.data === null);
   const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -45,6 +48,7 @@ export function useAnalytics(options: UseAnalyticsOptions = {}): UseAnalyticsRet
       try {
         const result = await api.analytics({ source });
         if (isMountedRef.current) {
+          globalCache.data = result;
           setData(result);
         }
       } catch (err) {

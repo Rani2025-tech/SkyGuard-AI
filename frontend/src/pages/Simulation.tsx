@@ -12,6 +12,8 @@ const VARIABLES = [
 
 const TYPES = ['SPIKE', 'DROP', 'DRIFT', 'FROZEN', 'MISSING'];
 
+let cachedStations: import('../types').Station[] = [];
+
 interface TypeConfig {
   help: string;
   magnitude: { min: number; max: number; default: number; label: string };
@@ -55,7 +57,7 @@ const TYPE_TONE: Record<string, string> = {
 };
 
 export default function Simulation() {
-  const [stations, setStations] = useState<Station[]>([]);
+  const [stations, setStations] = useState<Station[]>(cachedStations);
   const [stationId, setStationId] = useState('AWS-023');
   const [variable, setVariable] = useState('temperature');
   const [anomalyType, setAnomalyType] = useState('SPIKE');
@@ -66,9 +68,10 @@ export default function Simulation() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    if (cachedStations.length > 0) return;
     api
       .stations()
-      .then(setStations)
+      .then((s) => { cachedStations = s; setStations(s); })
       .catch(() => {});
   }, []);
 

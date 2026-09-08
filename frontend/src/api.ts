@@ -18,10 +18,22 @@ import type {
 
 const BASE = (import.meta.env.VITE_API_URL || '/api').replace(/\/$/, '');
 
+const cache = new Map<string, { data: unknown; ts: number }>();
+const CACHE_TTL = 60_000; // 60 seconds
+
+const NO_CACHE = ['/simulation/inject', '/health'];
+
 async function get<T>(path: string): Promise<T> {
+  const skip = NO_CACHE.some((p) => path.startsWith(p));
+  if (!skip) {
+    const hit = cache.get(path);
+    if (hit && Date.now() - hit.ts < CACHE_TTL) return hit.data as T;
+  }
   const res = await fetch(`${BASE}${path}`);
   if (!res.ok) throw new Error(`API ${res.status}: ${res.statusText}`);
-  return (await res.json()) as T;
+  const data = (await res.json()) as T;
+  if (!skip) cache.set(path, { data, ts: Date.now() });
+  return data;
 }
 
 async function post<T>(path: string, body: unknown): Promise<T> {

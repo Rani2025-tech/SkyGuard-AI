@@ -1,5 +1,7 @@
+import { useEffect } from 'react';
 import { Routes, Route } from 'react-router-dom';
 import Layout from './components/Layout';
+import { api } from './api';
 import Dashboard from './pages/Dashboard';
 import Live from './pages/Live';
 import Stations from './pages/Stations';
@@ -15,6 +17,15 @@ import Evaluation from './pages/Evaluation';
 import Settings from './pages/Settings';
 
 export default function App() {
+  useEffect(() => {
+    // Prefetch heavy pages in background so they load instantly on first visit
+    api.stations();
+    api.anomalies();
+    api.health();
+    api.modelMetadata();
+    api.modelEvaluation();
+  }, []);
+
   return (
     <Layout>
       <Routes>

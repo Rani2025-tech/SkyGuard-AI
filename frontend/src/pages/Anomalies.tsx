@@ -13,7 +13,6 @@ export default function Anomalies() {
   const [anomalyType, setAnomalyType] = useState('');
 
   useEffect(() => {
-    setAnomalies(null);
     api
       .anomalies({ severity: severity || undefined, anomaly_type: anomalyType || undefined })
       .then(setAnomalies)
